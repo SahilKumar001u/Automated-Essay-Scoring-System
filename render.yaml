@@ -1,0 +1,54 @@
+# Render Blueprint: New > Blueprint in the Render dashboard, pick this repo.
+# You will be asked for GOOGLE_API_KEY (or switch LLM_PROVIDER/OPENAI_API_KEY).
+databases:
+  - name: aes-db
+    databaseName: aes
+    user: aes
+    plan: basic-256mb # free Postgres is deleted after 30 days
+
+services:
+  - type: web
+    name: aes-backend
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: standard # 2 GB RAM: Java LanguageTool + spaCy + ONNX do not fit in 512 MB
+    healthCheckPath: /api/health
+    disk: # ChromaDB keeps assignment criteria here; disks need a paid plan
+      name: chroma
+      mountPath: /data/chroma
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aes-db
+          property: connectionString
+      - key: CHROMA_DIR
+        value: /data/chroma
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LLM_PROVIDER
+        value: google_genai
+      - key: LLM_MODEL
+        value: gemini-3.6-flash
+      - key: LLM_FALLBACK_MODELS
+        value: gemini-3.5-flash,gemini-3.5-flash-lite
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+  - type: web
+    name: aes-frontend
+    runtime: docker
+    dockerContext: ./frontend
+    dockerfilePath: ./frontend/Dockerfile
+    plan: starter
+    envVars:
+      - key: BACKEND_HOSTPORT # nginx proxies /api to the backend over Render's private network
+        fromService:
+          type: web
+          name: aes-backend
+          property: hostport
