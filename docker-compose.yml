@@ -1,6 +1,8 @@
 services:
   db:
     image: postgres:16-alpine
+    ports:
+      - "127.0.0.1:5435:5432" # for DB GUI tools (DBeaver/pgAdmin)
     environment:
       POSTGRES_USER: aes
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -37,6 +39,8 @@ services:
 
   frontend:
     build: ./frontend
+    environment:
+      BACKEND_HOSTPORT: backend:8000
     depends_on:
       backend:
         condition: service_healthy

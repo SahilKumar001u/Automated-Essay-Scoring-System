@@ -3,7 +3,8 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from .config import settings
 
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+# Render hands out postgresql:// URLs; SQLAlchemy needs the psycopg (v3) driver named
+engine = create_engine(settings.database_url.replace("postgresql://", "postgresql+psycopg://", 1), pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
